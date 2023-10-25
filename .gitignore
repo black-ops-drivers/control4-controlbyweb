@@ -1,0 +1,5 @@
+/out
+/.venv
+/node_modules
+/www/documentation/assets
+/www/documentation/index.html

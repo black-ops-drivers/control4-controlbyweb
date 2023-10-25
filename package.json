@@ -1,0 +1,18 @@
+{
+  "scripts": {
+    "docs": "rm -rf ./images && cp -r www/documentation/images . && prettier --prose-wrap always --write './www/**/*.md'; cd www/documentation; generate-md --layout github --input index.md --output .; electron-pdf --marginsType 0 --input \"`pwd`/index.html\" --output ../../out/ControlByWeb\\ Documentation.pdf",
+    "fmt": "stylua --indent-type Spaces --column-width 120 --line-endings Unix --indent-width 2 --quote-style AutoPreferDouble -g 'src/**/*.lua' -g 'driver.lua' .",
+    "init": "mkdir -p out && python -m venv .venv && . .venv/bin/activate && python -m pip install pip setuptools wheel && env LDFLAGS=\"-L$(brew --prefix openssl)/lib\" CFLAGS=\"-I$(brew --prefix openssl)/include\" SWIG_FEATURES=\"-cpperraswarn -includeall -I$(brew --prefix openssl)/include\" pip install M2Crypto lxml && rm -rf out/driverpackager && git clone git@github.com:snap-one/drivers-driverpackager.git out/driverpackager",
+    "update-driver-version": "xmlstarlet edit --inplace --omit-decl --update '/devicedata/version' --value \"`date +'%Y%m%d'`\" driver.xml",
+    "update-driver-modified-date": "xmlstarlet edit --inplace --omit-decl --update '/devicedata/modified' --value \"`date +'%m/%d/%Y %I:%M %p'`\" driver.xml",
+    "package": "mkdir -p out && ./.venv/bin/python3 out/driverpackager/dp3/driverpackager.py . out controlbyweb.c4zproj && cd out && zip control4-controlbyweb.zip controlbyweb.c4z ControlByWeb\\ Documentation.pdf",
+    "build": "npm run fmt && npm run docs && npm run update-driver-version && npm run update-driver-modified-date && npm run package",
+    "clean": "rm -rfv out node_modules .venv"
+  },
+  "dependencies": {
+    "@johnnymorganz/stylua-bin": "^0.18.2",
+    "electron-pdf": "^25.0.0",
+    "markdown-styles": "^3.2.0",
+    "prettier": "^3.0.3"
+  }
+}

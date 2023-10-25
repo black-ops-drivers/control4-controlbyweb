@@ -1,0 +1,147 @@
+<devicedata>
+  <name>ControlByWeb</name>
+  <version>20231025</version>
+  <manufacturer>ControlByWeb</manufacturer>
+  <model>Universal</model>
+  <creator>Black Ops Drivers</creator>
+  <small image_source="c4z">icons/device_sm.png</small>
+  <large image_source="c4z">icons/device_lg.png</large>
+  <control>lua_gen</control>
+  <controlmethod>ip</controlmethod>
+  <driver>DriverWorks</driver>
+  <created>08/27/2014 12:00:00 PM</created>
+  <modified>10/25/2023 02:27 PM</modified>
+  <combo>true</combo>
+  <minimum_os_version>3.3.0</minimum_os_version>
+  <composer_categories>
+    <category>Motorization</category>
+  </composer_categories>
+  <config>
+    <script file="driver.lua" jit="1"/>
+    <documentation file="www/documentation/index.html"/>
+    <properties>
+      <property>
+        <name>Cloud</name>
+        <type>LABEL</type>
+        <default>Cloud Settings</default>
+      </property>
+      <property>
+        <name>Automatic Updates</name>
+        <type>LIST</type>
+        <items>
+          <item>Off</item>
+          <item>On</item>
+        </items>
+        <default>On</default>
+      </property>
+      <property>
+        <name>Update Channel</name>
+        <type>LIST</type>
+        <default>Production</default>
+        <items>
+          <item>Production</item>
+          <item>Prerelease</item>
+        </items>
+      </property>
+      <property>
+        <name>Driver</name>
+        <type>LABEL</type>
+        <default>Driver Settings</default>
+      </property>
+      <property>
+        <name>Driver Status</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Driver Version</name>
+        <type>STRING</type>
+        <default/>
+        <readonly>true</readonly>
+      </property>
+      <property>
+        <name>Log Level</name>
+        <type>LIST</type>
+        <default>3 - Info</default>
+        <items>
+          <item>0 - Fatal</item>
+          <item>1 - Error</item>
+          <item>2 - Warning</item>
+          <item>3 - Info</item>
+          <item>4 - Debug</item>
+          <item>5 - Trace</item>
+          <item>6 - Ultra</item>
+        </items>
+      </property>
+      <property>
+        <name>Log Mode</name>
+        <type>LIST</type>
+        <default>Off</default>
+        <items>
+          <item>Off</item>
+          <item>Print</item>
+          <item>Log</item>
+          <item>Print and Log</item>
+        </items>
+      </property>
+      <property>
+        <name>Module Settings</name>
+        <type>LABEL</type>
+        <default>Module Settings</default>
+      </property>
+      <property>
+        <name>IP Address</name>
+        <type>STRING</type>
+        <default/>
+      </property>
+      <property>
+        <name>Username</name>
+        <type>STRING</type>
+        <default>admin</default>
+      </property>
+      <property>
+        <name>Password</name>
+        <type>STRING</type>
+        <default>webrelay</default>
+        <password>true</password>
+      </property>
+      <property>
+        <name>Last Poll Time</name>
+        <type>STRING</type>
+        <default>n/a</default>
+        <readonly>True</readonly>
+      </property>
+      <property>
+        <name>Model Number</name>
+        <type>STRING</type>
+        <default>n/a</default>
+        <readonly>True</readonly>
+      </property>
+      <property>
+        <name>Serial Number</name>
+        <type>STRING</type>
+        <default>n/a</default>
+        <readonly>True</readonly>
+      </property>
+      <property>
+        <name>Firmware Revision</name>
+        <type>STRING</type>
+        <default>n/a</default>
+        <readonly>True</readonly>
+      </property>
+      <property>
+        <name>Onboard Timestamp</name>
+        <type>STRING</type>
+        <default>n/a</default>
+        <readonly>True</readonly>
+      </property>
+    </properties>
+    <actions>
+      <action>
+        <name>Update Drivers</name>
+        <command>UpdateDrivers</command>
+      </action>
+    </actions>
+  </config>
+</devicedata>
