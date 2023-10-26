@@ -59,7 +59,7 @@ end
 
 function API:getStatus()
   log:trace("API:getStatus()")
-  return self:_get("/state.xml"):next(function(stateBody)
+  return self:_get("/state.xml?showUnits=1"):next(function(stateBody)
     return self:_get("/diagnostics.xml"):next(function(diagnosticsBody)
       return {
         state = Select(stateBody, "datavalues") or {},
@@ -69,16 +69,36 @@ function API:getStatus()
   end)
 end
 
-function API:controlRelay(relayNumber, state)
-  log:trace("API:controlRelay(%s, %s)", relayNumber, state)
-  return self:_get("/state.xml?relay" .. relayNumber .. "State=" .. (state and "1" or "0"))
+function API:controlRelay(index, state)
+  log:trace("API:controlRelay(%s, %s)", index, state)
+  return self:_control("relay", index, state)
 end
 
-function API:pulseRelay(relayNumber, duration)
-  log:trace("API:pulseRelay(%s, %s)", relayNumber, duration)
-  local path = "/state.xml?relay" .. relayNumber .. "State=2"
+function API:pulseRelay(index, duration)
+  log:trace("API:pulseRelay(%s, %s)", index, duration)
+  return self:_pulse("relay", index, duration)
+end
+
+function API:controlDigitalIO(index, state)
+  log:trace("API:controlDigitalIO(%s, %s)", index, state)
+  return self:_control("digitalIO", index, state)
+end
+
+function API:pulseDigitalIO(index, duration)
+  log:trace("API:pulseRelay(%s, %s)", index, duration)
+  return self:_pulse("digitalIO", index, duration)
+end
+
+function API:_control(name, index, state)
+  log:trace("API:_control(%s, %s, %s)", name, index, state)
+  return self:_get("/state.xml?" .. name .. index .. "State=" .. (state and "1" or "0"))
+end
+
+function API:_pulse(name, index, duration)
+  log:trace("API:_pulse(%s, %s, %s)", name, index, duration)
+  local path = "/state.xml?" .. name .. index .. "State=2"
   if type(duration) == "number" and duration > 0 then
-    path = path .. "&pulseTime" .. relayNumber .. "=" .. (duration / 1000)
+    path = path .. "&pulseTime" .. index .. "=" .. (duration / 1000)
   end
   return self:_get(path)
 end

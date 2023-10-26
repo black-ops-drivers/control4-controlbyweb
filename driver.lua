@@ -155,15 +155,14 @@ local function updateValue(name, value, type)
   end
 end
 
-local function updateRelay(relayNumber, value)
-  log:trace("updateRelay(%s %s)", relayNumber, value)
+local function updateRelay(index, value)
+  log:trace("updateRelay(%s %s)", index, value)
   value = toboolean(value)
 
-  updateValue("Relay " .. relayNumber .. " State", value and "1" or "0", "BOOL")
+  updateValue("Relay " .. index .. " State", value and "1" or "0", "BOOL")
 
-  local bindingKey = "relay" .. relayNumber
-  local binding =
-    bindings:getOrAddDynamicBinding("controlbyweb", bindingKey, "PROXY", true, "Relay " .. relayNumber, "RELAY")
+  local bindingKey = "relay" .. index
+  local binding = bindings:getOrAddDynamicBinding("controlbyweb", bindingKey, "PROXY", true, "Relay " .. index, "RELAY")
   if binding == nil then
     log:error("number of connections exceeds this driver's limit!")
     return nil
@@ -174,24 +173,24 @@ local function updateRelay(relayNumber, value)
     local response
     local pulseTime = 0
     if strCommand == "ON" or strCommand == "CLOSE" then
-      response = api:controlRelay(relayNumber, true)
+      response = api:controlRelay(index, true)
     elseif strCommand == "OFF" or strCommand == "OPEN" then
-      response = api:controlRelay(relayNumber, false)
+      response = api:controlRelay(index, false)
     elseif strCommand == "TOGGLE" then
-      response = api:controlRelay(relayNumber, not value)
+      response = api:controlRelay(index, not value)
     elseif strCommand == "TRIGGER" then
       pulseTime = tonumber_locale(tParams.TIME) or 0
-      response = api:pulseRelay(relayNumber, pulseTime)
+      response = api:pulseRelay(index, pulseTime)
     end
     if response ~= nil then
       response:next(function()
-        log:debug("%s command sent to relay%s", strCommand, relayNumber)
+        log:debug("%s command sent to relay%s", strCommand, index)
         SetTimer("RefreshAfterCommand", 500, RefreshStatus)
         if pulseTime then
           SetTimer("RefreshAfterPulseCommand", pulseTime + 250, RefreshStatus)
         end
       end, function(error)
-        log:error("An error occurred sending %s command to relay%s; %s", strCommand, relayNumber, error)
+        log:error("An error occurred sending %s command to relay%s; %s", strCommand, index, error)
       end)
     end
   end
@@ -200,21 +199,15 @@ local function updateRelay(relayNumber, value)
   return binding
 end
 
-local function updateDigitalInput(digitalInputNumber, value)
-  log:trace("updateDigitalInput(%s %s)", digitalInputNumber, value)
+local function updateDigitalInput(index, value)
+  log:trace("updateDigitalInput(%s %s)", index, value)
   value = toboolean(value)
 
-  updateValue("Input " .. digitalInputNumber .. " State", value and "1" or "0", "BOOL")
+  updateValue("Input " .. index .. " State", value and "1" or "0", "BOOL")
 
-  local bindingKey = "digitalInput" .. digitalInputNumber
-  local binding = bindings:getOrAddDynamicBinding(
-    "controlbyweb",
-    bindingKey,
-    "PROXY",
-    true,
-    "Input " .. digitalInputNumber,
-    "CONTACT_SENSOR"
-  )
+  local bindingKey = "digitalInput" .. index
+  local binding =
+    bindings:getOrAddDynamicBinding("controlbyweb", bindingKey, "PROXY", true, "Input " .. index, "CONTACT_SENSOR")
   if binding == nil then
     log:error("number of connections exceeds this driver's limit!")
     return nil
@@ -224,40 +217,94 @@ local function updateDigitalInput(digitalInputNumber, value)
   return binding
 end
 
-local function updateOneWireSensor(oneWireSensorNumber, value)
-  log:trace("updateOneWireSensor(%s %s)", oneWireSensorNumber, value)
-  value = tonumber_locale(value)
-  if value == nil then
-    value = -1000
-  end
+local function updateOneWireSensor(index, value)
+  log:trace("updateOneWireSensor(%s %s)", index, value)
 
-  local tempF = value
-  local tempC = F2C(tempF)
-  local tempFStr = tostring_return_period(tempF)
-  local tempCStr = tostring_return_period(tempC)
+  local temp, units = (value or ""):match("(%S+)%s+([CFK])")
+  temp = tonumber_locale(temp)
 
-  updateValue("Sensor " .. oneWireSensorNumber .. " Temp", tempFStr, "NUMBER")
-
-  local bindingKey = "oneWireSensor" .. oneWireSensorNumber
+  local bindingKey = "oneWireSensor" .. index
   local isInitialized = bindings:getDynamicBinding("controlbyweb", bindingKey)
   local binding = bindings:getOrAddDynamicBinding(
     "controlbyweb",
     bindingKey,
     "PROXY",
     true,
-    "Temperature " .. oneWireSensorNumber,
+    "Temperature " .. index,
     "TEMPERATURE_VALUE"
   )
   if binding == nil then
     log:error("number of connections exceeds this driver's limit!")
     return nil
   end
+
+  if temp == nil or units == nil then
+    log:error("Invalid oneWireSensor%s temperature reading: %s", index, value)
+    return binding
+  end
+
+  local tempF, tempC
+  if units == "F" then
+    tempF, tempC = temp, F2C(temp)
+  elseif units == "C" then
+    tempF, tempC = C2F(temp), temp
+  else
+    tempC = temp - 273.15
+    tempF = C2F(tempC)
+  end
+
+  updateValue("Sensor " .. index .. " Temp", tostring_return_period(temp), "NUMBER")
   SendToProxy(binding.bindingId, isInitialized and "VALUE_CHANGED" or "VALUE_INITIALIZE", {
-    FAHRENHEIT = tempFStr,
-    CELSIUS = tempCStr,
+    FAHRENHEIT = tostring_return_period(tempF),
+    CELSIUS = tostring_return_period(tempC),
     STATUS = not isInitialized and "active" or nil,
     TIMESTAMP = tostring(os.time()),
   }, "NOTIFY")
+
+  return binding
+end
+
+local function updateDigitalIO(index, value)
+  log:trace("updateDigitalIO(%s %s)", index, value)
+  value = toboolean(value)
+
+  updateValue("Digital I/O " .. index .. " State", value and "1" or "0", "BOOL")
+
+  local bindingKey = "digitalIO" .. index
+  local binding =
+    bindings:getOrAddDynamicBinding("controlbyweb", bindingKey, "PROXY", true, "Digital I/O " .. index, "RELAY")
+  if binding == nil then
+    log:error("number of connections exceeds this driver's limit!")
+    return nil
+  end
+
+  RFP[binding.bindingId] = function(idBinding, strCommand, tParams, args)
+    log:trace("RFP idBinding=%s strCommand=%s tParams=%s args=%s", idBinding, strCommand, tParams, args)
+    local response
+    local pulseTime = 0
+    if strCommand == "ON" or strCommand == "CLOSE" then
+      response = api:controlDigitalIO(index, true)
+    elseif strCommand == "OFF" or strCommand == "OPEN" then
+      response = api:controlDigitalIO(index, false)
+    elseif strCommand == "TOGGLE" then
+      response = api:controlDigitalIO(index, not value)
+    elseif strCommand == "TRIGGER" then
+      pulseTime = tonumber_locale(tParams.TIME) or 0
+      response = api:pulseDigitalIO(index, pulseTime)
+    end
+    if response ~= nil then
+      response:next(function()
+        log:debug("%s command sent to digitalIO%s", strCommand, index)
+        SetTimer("RefreshAfterCommand", 500, RefreshStatus)
+        if pulseTime then
+          SetTimer("RefreshAfterPulseCommand", pulseTime + 250, RefreshStatus)
+        end
+      end, function(error)
+        log:error("An error occurred sending %s command to digitalIO%s; %s", strCommand, index, error)
+      end)
+    end
+  end
+  SendToProxy(binding.bindingId, value and "CLOSED" or "OPENED", {}, "NOTIFY")
 
   return binding
 end
@@ -279,20 +326,36 @@ function RefreshStatus()
 
     for key, value in pairs(Select(status, "state") or {}) do
       local binding
-      local relayNumber = key:match("^relay(%d+)$")
-      local digitalInputNumber = key:match("^digitalInput(%d+)$")
-      local oneWireSensorNumber = key:match("^oneWireSensor(%d+)$")
+      local name, index = key:match("^([a-zA-Z]+)(%d*)$")
 
-      if relayNumber ~= nil then
-        binding = updateRelay(relayNumber, value)
-      elseif digitalInputNumber ~= nil then
-        binding = updateDigitalInput(digitalInputNumber, value)
-      elseif oneWireSensorNumber ~= nil then
-        binding = updateOneWireSensor(oneWireSensorNumber, value)
-      elseif key == "vin" then
+      if not IsEmpty(index) then
+        if name == "relay" then
+          binding = updateRelay(index, value)
+        elseif name == "digitalInput" then
+          binding = updateDigitalInput(index, value)
+        elseif name == "oneWireSensor" then
+          binding = updateOneWireSensor(index, value)
+        elseif name == "digitalIO" then
+          binding = updateDigitalIO(index, value)
+        elseif name == "onTime" then
+          updateValue("On Time " .. index, value, "NUMBER")
+        elseif name == "totalOnTime" then
+          updateValue("Total On Time " .. index, value, "NUMBER")
+        elseif name == "count" then
+          updateValue("Counter " .. index, value, "NUMBER")
+        elseif name == "frequency" then
+          updateValue("Frequency " .. index, value, "NUMBER")
+        elseif name == "analogInput" then
+          updateValue("Analog Input " .. index, value, "NUMBER")
+        elseif name == "register" then
+          updateValue("Register " .. index, value, "STRING")
+        end
+      elseif name == "vin" then
         updateValue("Voltage Input", value, "NUMBER")
-      elseif key == "utcTime" then
+      elseif name == "utcTime" then
         updateValue("Onboard Timestamp", value, "NUMBER")
+      elseif name == "frequencyInput" then
+        updateValue("Frequency Input", value, "NUMBER")
       end
 
       if binding then
