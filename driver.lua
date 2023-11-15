@@ -17,6 +17,8 @@ local githubUpdater = require("lib.github-updater")
 
 local api = require("api")
 
+local BINDING_NS = "controlbyweb"
+
 local function updateStatus(status)
   UpdateProperty("Driver Status", not IsEmpty(status) and status or "Unknown")
 end
@@ -162,7 +164,7 @@ local function updateRelay(index, value)
   updateValue("Relay " .. index .. " State", value and "1" or "0", "BOOL")
 
   local bindingKey = "relay" .. index
-  local binding = bindings:getOrAddDynamicBinding("controlbyweb", bindingKey, "PROXY", true, "Relay " .. index, "RELAY")
+  local binding = bindings:getOrAddDynamicBinding(BINDING_NS, bindingKey, "PROXY", true, "Relay " .. index, "RELAY")
   if binding == nil then
     log:error("number of connections exceeds this driver's limit!")
     return nil
@@ -207,7 +209,7 @@ local function updateDigitalInput(index, value)
 
   local bindingKey = "digitalInput" .. index
   local binding =
-    bindings:getOrAddDynamicBinding("controlbyweb", bindingKey, "PROXY", true, "Input " .. index, "CONTACT_SENSOR")
+    bindings:getOrAddDynamicBinding(BINDING_NS, bindingKey, "PROXY", true, "Input " .. index, "CONTACT_SENSOR")
   if binding == nil then
     log:error("number of connections exceeds this driver's limit!")
     return nil
@@ -224,15 +226,9 @@ local function updateOneWireSensor(index, value)
   temp = tonumber_locale(temp)
 
   local bindingKey = "oneWireSensor" .. index
-  local isInitialized = bindings:getDynamicBinding("controlbyweb", bindingKey)
-  local binding = bindings:getOrAddDynamicBinding(
-    "controlbyweb",
-    bindingKey,
-    "PROXY",
-    true,
-    "Temperature " .. index,
-    "TEMPERATURE_VALUE"
-  )
+  local isInitialized = bindings:getDynamicBinding(BINDING_NS, bindingKey)
+  local binding =
+    bindings:getOrAddDynamicBinding(BINDING_NS, bindingKey, "PROXY", true, "Temperature " .. index, "TEMPERATURE_VALUE")
   if binding == nil then
     log:error("number of connections exceeds this driver's limit!")
     return nil
@@ -272,7 +268,7 @@ local function updateDigitalIO(index, value)
 
   local bindingKey = "digitalIO" .. index
   local binding =
-    bindings:getOrAddDynamicBinding("controlbyweb", bindingKey, "PROXY", true, "Digital I/O " .. index, "RELAY")
+    bindings:getOrAddDynamicBinding(BINDING_NS, bindingKey, "PROXY", true, "Digital I/O " .. index, "RELAY")
   if binding == nil then
     log:error("number of connections exceeds this driver's limit!")
     return nil
@@ -312,50 +308,59 @@ end
 function RefreshStatus()
   log:trace("RefreshStatus()")
   api:getStatus():next(function(status)
-    local serialNumber = Select(status, "diagnostics", "serialNumber")
-    if IsEmpty(serialNumber) then
-      log:error()
+    updateValue("Last Poll Time", os.date(), "STRING")
+    updateValue("Serial Number", Select(status, "diagnostics", "serialNumber") or "N/A", "STRING")
+    updateValue("Model Number", Select(status, "diagnostics", "modelNumber") or "N/A", "STRING")
+    updateValue("Firmware Revision", Select(status, "diagnostics", "firmwareRevision") or "N/A", "STRING")
+
+    local state = Select(status, "state")
+    if IsEmpty(state) then
       return
     end
-    updateValue("Last Poll Time", os.date(), "STRING")
-    updateValue("Serial Number", serialNumber, "STRING")
-    updateValue("Model Number", Select(status, "diagnostics", "modelNumber"), "STRING")
-    updateValue("Firmware Revision", Select(status, "diagnostics", "firmwareRevision"), "STRING")
 
-    local abandonedBindings = bindings:getDynamicBindings("controlbyweb")
+    local abandonedBindings = bindings:getDynamicBindings(BINDING_NS)
 
-    for key, value in pairs(Select(status, "state") or {}) do
-      local binding
+    local dataValues = {}
+    for key, value in pairs(state) do
       local name, index = key:match("^([a-zA-Z]+)(%d*)$")
+      table.insert(dataValues, { key = key, value = value, name = name, index = index })
+    end
 
-      if not IsEmpty(index) then
-        if name == "relay" then
-          binding = updateRelay(index, value)
-        elseif name == "digitalInput" then
-          binding = updateDigitalInput(index, value)
-        elseif name == "oneWireSensor" then
-          binding = updateOneWireSensor(index, value)
-        elseif name == "digitalIO" then
-          binding = updateDigitalIO(index, value)
-        elseif name == "onTime" then
-          updateValue("On Time " .. index, value, "NUMBER")
-        elseif name == "totalOnTime" then
-          updateValue("Total On Time " .. index, value, "NUMBER")
-        elseif name == "count" then
-          updateValue("Counter " .. index, value, "NUMBER")
-        elseif name == "frequency" then
-          updateValue("Frequency " .. index, value, "NUMBER")
-        elseif name == "analogInput" then
-          updateValue("Analog Input " .. index, value, "NUMBER")
-        elseif name == "register" then
-          updateValue("Register " .. index, value, "STRING")
+    -- Sort states by name so bindings and variables are consistent
+    table.sort(dataValues, function(a, b)
+      return a.key < b.key
+    end)
+
+    for _, dataValue in pairs(dataValues) do
+      local binding
+      if not IsEmpty(dataValue.index) then
+        if dataValue.name == "relay" then
+          binding = updateRelay(dataValue.index, dataValue.value)
+        elseif dataValue.name == "digitalInput" then
+          binding = updateDigitalInput(dataValue.index, dataValue.value)
+        elseif dataValue.name == "oneWireSensor" then
+          binding = updateOneWireSensor(dataValue.index, dataValue.value)
+        elseif dataValue.name == "digitalIO" then
+          binding = updateDigitalIO(dataValue.index, dataValue.value)
+        elseif dataValue.name == "onTime" then
+          updateValue("On Time " .. dataValue.index, dataValue.value, "NUMBER")
+        elseif dataValue.name == "totalOnTime" then
+          updateValue("Total On Time " .. dataValue.index, dataValue.value, "NUMBER")
+        elseif dataValue.name == "count" then
+          updateValue("Counter " .. dataValue.index, dataValue.value, "NUMBER")
+        elseif dataValue.name == "frequency" then
+          updateValue("Frequency " .. dataValue.index, dataValue.value, "NUMBER")
+        elseif dataValue.name == "analogInput" then
+          updateValue("Analog Input " .. dataValue.index, dataValue.value, "NUMBER")
+        elseif dataValue.name == "register" then
+          updateValue("Register " .. dataValue.index, dataValue.value, "STRING")
         end
-      elseif name == "vin" then
-        updateValue("Voltage Input", value, "NUMBER")
-      elseif name == "utcTime" then
-        updateValue("Onboard Timestamp", value, "NUMBER")
-      elseif name == "frequencyInput" then
-        updateValue("Frequency Input", value, "NUMBER")
+      elseif dataValue.name == "vin" then
+        updateValue("Voltage Input", dataValue.value, "NUMBER")
+      elseif dataValue.name == "utcTime" then
+        updateValue("Onboard Timestamp", dataValue.value, "NUMBER")
+      elseif dataValue.name == "frequencyInput" then
+        updateValue("Frequency Input", dataValue.value, "NUMBER")
       end
 
       if binding then

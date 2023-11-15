@@ -92,6 +92,7 @@ function Bindings:restoreBindings()
   for _, keys in pairs(self:_getBindings()) do
     for _, binding in pairs(keys) do
       deviceBindings[binding.bindingId] = nil
+      log:debug("Restoring %s binding %s", binding.class, binding.displayName)
       C4:AddDynamicBinding(
         binding.bindingId,
         binding.type,
