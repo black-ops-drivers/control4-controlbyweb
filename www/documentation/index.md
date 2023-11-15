@@ -135,6 +135,13 @@ https://github.com/black-ops-drivers/control4-controlbyweb/issues/new
 [//]: # "### Removed"
 [//]: # "- Removed"
 
+## v20231115 - 2023-11-15
+
+### Fixed
+
+- Fixed an issue with inconsistent binding order that would occasionally cause
+  connections to reset.
+
 ## v20231025 - 2023-10-25
 
 ### Added

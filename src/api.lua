@@ -62,8 +62,8 @@ function API:getStatus()
   return self:_get("/state.xml?showUnits=1"):next(function(stateBody)
     return self:_get("/diagnostics.xml"):next(function(diagnosticsBody)
       return {
-        state = Select(stateBody, "datavalues") or {},
-        diagnostics = Select(diagnosticsBody, "datavalues") or {},
+        state = Select(stateBody, "datavalues"),
+        diagnostics = Select(diagnosticsBody, "datavalues"),
       }
     end)
   end)
