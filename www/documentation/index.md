@@ -135,6 +135,14 @@ https://github.com/black-ops-drivers/control4-controlbyweb/issues/new
 [//]: # "### Removed"
 [//]: # "- Removed"
 
+## v20240117 - 2024-01-17
+
+### Changed
+
+- Changed the behavior of binding and variable notifications to only trigger
+  when the value changed from the last known state. This helps to avoid spamming
+  the history with duplicate events.
+
 ## v20231115 - 2023-11-15
 
 ### Fixed

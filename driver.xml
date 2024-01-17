@@ -1,6 +1,6 @@
 <devicedata>
   <name>ControlByWeb</name>
-  <version>20231115</version>
+  <version>20240117</version>
   <manufacturer>ControlByWeb</manufacturer>
   <model>Universal</model>
   <creator>Black Ops Drivers</creator>
@@ -10,7 +10,7 @@
   <controlmethod>ip</controlmethod>
   <driver>DriverWorks</driver>
   <created>08/27/2014 12:00:00 PM</created>
-  <modified>11/15/2023 03:18 PM</modified>
+  <modified>01/17/2024 12:30 PM</modified>
   <combo>true</combo>
   <minimum_os_version>3.3.0</minimum_os_version>
   <composer_categories>
