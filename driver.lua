@@ -14,6 +14,7 @@ JSON = require("vendor.JSON")
 local log = require("lib.logging")
 local bindings = require("lib.bindings")
 local githubUpdater = require("lib.github-updater")
+local persist = require("lib.persist")
 
 local api = require("api")
 
@@ -22,6 +23,8 @@ local BINDING_NS = "controlbyweb"
 local function updateStatus(status)
   UpdateProperty("Driver Status", not IsEmpty(status) and status or "Unknown")
 end
+
+local VALUES_PERSIST_KEY = "Values"
 
 function OnDriverLateInit()
   if not CheckMinimumVersion() then
@@ -145,6 +148,13 @@ end
 
 local function updateValue(name, value, type)
   log:trace("updateValue(%s, %s, %s)", name, value, type)
+  local values = persist:get(VALUES_PERSIST_KEY) or {}
+  if values[name] == value then
+    return false
+  end
+  values[name] = value
+  persist:set(VALUES_PERSIST_KEY, values)
+
   if type ~= nil then
     if Variables[name] == nil then
       C4:AddVariable(name, value or "", type, true, false)
@@ -155,19 +165,22 @@ local function updateValue(name, value, type)
   if Properties[name] ~= nil and Properties[name] ~= value then
     UpdateProperty(name, value, true)
   end
+  return true
 end
 
 local function updateRelay(index, value)
   log:trace("updateRelay(%s %s)", index, value)
   value = toboolean(value)
 
-  updateValue("Relay " .. index .. " State", value and "1" or "0", "BOOL")
-
   local bindingKey = "relay" .. index
   local binding = bindings:getOrAddDynamicBinding(BINDING_NS, bindingKey, "PROXY", true, "Relay " .. index, "RELAY")
   if binding == nil then
     log:error("number of connections exceeds this driver's limit!")
     return nil
+  end
+
+  if not updateValue("Relay " .. index .. " State", value and "1" or "0", "BOOL") then
+    return binding
   end
 
   RFP[binding.bindingId] = function(idBinding, strCommand, tParams, args)
@@ -205,8 +218,6 @@ local function updateDigitalInput(index, value)
   log:trace("updateDigitalInput(%s %s)", index, value)
   value = toboolean(value)
 
-  updateValue("Input " .. index .. " State", value and "1" or "0", "BOOL")
-
   local bindingKey = "digitalInput" .. index
   local binding =
     bindings:getOrAddDynamicBinding(BINDING_NS, bindingKey, "PROXY", true, "Input " .. index, "CONTACT_SENSOR")
@@ -214,6 +225,11 @@ local function updateDigitalInput(index, value)
     log:error("number of connections exceeds this driver's limit!")
     return nil
   end
+
+  if not updateValue("Input " .. index .. " State", value and "1" or "0", "BOOL") then
+    return binding
+  end
+
   SendToProxy(binding.bindingId, value and "CLOSED" or "OPENED", {}, "NOTIFY")
 
   return binding
@@ -249,7 +265,10 @@ local function updateOneWireSensor(index, value)
     tempF = C2F(tempC)
   end
 
-  updateValue("Sensor " .. index .. " Temp", tostring_return_period(temp), "NUMBER")
+  if not updateValue("Sensor " .. index .. " Temp", tostring_return_period(temp), "NUMBER") then
+    return binding
+  end
+
   SendToProxy(binding.bindingId, isInitialized and "VALUE_CHANGED" or "VALUE_INITIALIZE", {
     FAHRENHEIT = tostring_return_period(tempF),
     CELSIUS = tostring_return_period(tempC),
@@ -264,14 +283,16 @@ local function updateDigitalIO(index, value)
   log:trace("updateDigitalIO(%s %s)", index, value)
   value = toboolean(value)
 
-  updateValue("Digital I/O " .. index .. " State", value and "1" or "0", "BOOL")
-
   local bindingKey = "digitalIO" .. index
   local binding =
     bindings:getOrAddDynamicBinding(BINDING_NS, bindingKey, "PROXY", true, "Digital I/O " .. index, "RELAY")
   if binding == nil then
     log:error("number of connections exceeds this driver's limit!")
     return nil
+  end
+
+  if not updateValue("Digital I/O " .. index .. " State", value and "1" or "0", "BOOL") then
+    return binding
   end
 
   RFP[binding.bindingId] = function(idBinding, strCommand, tParams, args)
