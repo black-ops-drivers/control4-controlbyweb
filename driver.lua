@@ -343,7 +343,7 @@ function RefreshStatus()
 
     local dataValues = {}
     for key, value in pairs(state) do
-      local name, index = key:match("^([a-zA-Z]+)(%d*)$")
+      local name, index = key:gsub("(.+%d+)state$", "%1"):match("^([a-zA-Z]+)(%d*)$")
       table.insert(dataValues, { key = key, value = value, name = name, index = index })
     end
 
@@ -357,7 +357,7 @@ function RefreshStatus()
       if not IsEmpty(dataValue.index) then
         if dataValue.name == "relay" then
           binding = updateRelay(dataValue.index, dataValue.value)
-        elseif dataValue.name == "digitalInput" then
+        elseif dataValue.name == "digitalInput" or dataValue.name == "input" then
           binding = updateDigitalInput(dataValue.index, dataValue.value)
         elseif dataValue.name == "oneWireSensor" then
           binding = updateOneWireSensor(dataValue.index, dataValue.value)
@@ -378,7 +378,7 @@ function RefreshStatus()
         end
       elseif dataValue.name == "vin" then
         updateValue("Voltage Input", dataValue.value, "NUMBER")
-      elseif dataValue.name == "utcTime" then
+      elseif dataValue.name == "utcTime" or dataValue.name == "time" then
         updateValue("Onboard Timestamp", dataValue.value, "NUMBER")
       elseif dataValue.name == "frequencyInput" then
         updateValue("Frequency Input", dataValue.value, "NUMBER")

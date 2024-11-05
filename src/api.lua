@@ -1,8 +1,6 @@
 local http = require("lib.http")
 local log = require("lib.logging")
 
-local deferred = require("vendor.deferred")
-
 local API = {}
 
 local noop = function() end
@@ -65,6 +63,10 @@ function API:getStatus()
         state = Select(stateBody, "datavalues"),
         diagnostics = Select(diagnosticsBody, "datavalues"),
       }
+    end, function()
+      return {
+        state = Select(stateBody, "datavalues"),
+      }
     end)
   end)
 end
@@ -115,7 +117,17 @@ function API:_get(path)
     if self._apiFailed then
       return reject(string.format("HTTP GET request to %s failed with status code %d", url, response.code))
     end
-    return ParseXml(response.body)
+    local success, data = xpcall(ParseXml, debug.traceback, response.body)
+    if success then
+      return data
+    end
+    return reject(
+      string.format(
+        "HTTP GET request to %s returned an invalid response body%s",
+        url,
+        type(data) == "string" and ("; " .. data) or ""
+      )
+    )
   end, function(error)
     self._apiFailed = true
     return error
