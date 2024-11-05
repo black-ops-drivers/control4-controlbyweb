@@ -28,10 +28,11 @@ tablets.
 
 # <span style="color:#004E7C">Verified Compatible Devices</span>
 
-> If you try this driver on a product not listed below and it works, let us
+> If you try this driver on a product not listed below, and it works, let us
 > know!
 
-- [X-410](https://www.controlbyweb.com/x410/)
+- [X-410](https://controlbyweb.com/x410/)
+- [XW-210-I](https://controlbyweb.com/webrelay-wireless/)
 
 # <span style="color:#004E7C">Driver Setup</span>
 
@@ -55,9 +56,9 @@ Below is an outline of the basic steps for your convenience.
    information.
 5. After a few moments the [`Driver Status`](#driver-status-read-only) will
    display `Connected`. If the driver fails to connect, set the
-   [`Log Mode`](#log-mode--off--print--log--print-and-log-) property to `Print`
-   and re-set the [`IP Adress`](#email) field to trigger a reconnect. Then check
-   the lua output window for more information.
+   [`Log Mode`](#log-mode--_off_--print--log--print-and-log-) property to
+   `Print` and re-set the [`IP Adress`](#ip-address) field to trigger a
+   reconnect. Then check the lua output window for more information.
 
 ## Driver Properties
 
@@ -134,6 +135,12 @@ https://github.com/black-ops-drivers/control4-controlbyweb/issues/new
 [//]: # "- Changed"
 [//]: # "### Removed"
 [//]: # "- Removed"
+
+## v20241105 - 2024-11-05
+
+### Added
+
+- Added support for the XW-210-I controller.
 
 ## v20240117 - 2024-01-17
 
